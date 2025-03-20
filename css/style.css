@@ -1,0 +1,3 @@
+.waitlist-modal-wrapper{backdrop-filter:blur(2px);background:rgba(0,0,0,0.5);height:100%;left:0;position:fixed;top:0;width:100%;z-index:9999}.waitlist-modal-content{background-color:white;margin:0 auto;margin-top:50vh;max-width:640px;padding:20px 20px 30px;text-align:center;transform:translateY(-50%);width:90%}.waitlist-modal-content .waitlist-email{border-width:1px;margin-bottom:15px;min-height:40px;width:100%}.close-wailtlist-modal{cursor:pointer;font-size:30px;line-height:1em;position:absolute;right:20px;top:20px;transform:rotate(45deg)}.product-soldout{margin:1.5em 0}
+
+/*# sourceMappingURL=style.css.map */
