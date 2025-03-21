@@ -31,7 +31,6 @@ function initWaitlist() {
 
         const triggerProducts = () => {
             const collections = document.querySelectorAll(selectors.collection);
-
             if (collections) {
                 collections.forEach((collection) => {
                     new MutationObserver((_, observer) => {
@@ -159,7 +158,6 @@ function initWaitlist() {
             try {
                 const response = await getCustomerData(token);
                 let html = '';
-
                 if (!response.success) {
                     if (!messError && !loginMess) {
                         html += '<h5 class="product-soldout">Sold Out</h5>';
@@ -173,6 +171,7 @@ function initWaitlist() {
                 }
 
                 html += `<button class="button primary show-waitlist-modal" data-title="${title}">join waitlist</button>`;
+                console.log(html)
                 callback(html);
             } catch (error) {
                 console.error('Error rendering waitlist content:', error);
