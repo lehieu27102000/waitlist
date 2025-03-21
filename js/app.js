@@ -94,7 +94,11 @@ function initWaitlist() {
 
         async function getCustomerData(token) {
             if (!token || !config.tenantId) {
-                throw new Error('Empty tenant id or empty token');
+                return {
+                    success: false,
+                    data: null
+                };
+                // throw new Error('Empty tenant id or empty token');
             }
 
             try {
@@ -154,7 +158,6 @@ function initWaitlist() {
             const parts = productLink.split("/");
             const title = parts.pop() || parts.pop();
             const token = getCookie('customerToken');
-
             try {
                 const response = await getCustomerData(token);
                 let html = '';
@@ -171,7 +174,6 @@ function initWaitlist() {
                 }
 
                 html += `<button class="button primary show-waitlist-modal" data-title="${title}">join waitlist</button>`;
-                console.log(html)
                 callback(html);
             } catch (error) {
                 console.error('Error rendering waitlist content:', error);
