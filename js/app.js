@@ -16,7 +16,7 @@ function initWaitlist() {
     jQuery(document).ready(function ($) {
         const selectors = {
             collection: ".c7-product-collection",
-            collectionProduct: ".c7-product-waitlist",
+            collectionProduct: ".c7-product",
             c7Wrapper: "c7-content",
             waitlist: ".c7-waitlist",
             form: "form",
