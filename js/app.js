@@ -164,6 +164,7 @@ function initWaitlist() {
                 if (!response.success) {
                     if (!messError && !loginMess) {
                         html += '<h5 class="product-soldout">Sold Out</h5>';
+                        html += `<button class="button primary show-waitlist-modal" data-title="${title}">join waitlist</button>`;
                     }
                     callback(html);
                     return;
