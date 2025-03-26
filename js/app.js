@@ -231,15 +231,15 @@ function initWaitlist() {
         }
         const handleAssignTag = async (element) => {
             try {
-                jQuery("body").append('<div class="waitlist-modal-wrapper loading-modal" id="loading-modal"><div class="waitlist-modal-content"><div class="loading-spinner"></div></div></div>');
                 const email = customer && customer.emails && customer.emails[0] && customer.emails[0].email ? customer.emails[0].email : jQuery(selectors.waitlistEmail).val();
                 const title = element.data("title");
 
                 jQuery(selectors.waitlistNotification).html("");
-                if (!validateEmail(email)) {
+                if (!validateEmail(email) || !email) {
                     jQuery(selectors.waitlistNotification).html('Input valid email address.');
                     return;
                 }
+                jQuery("body").append('<div class="waitlist-modal-wrapper loading-modal" id="loading-modal"><div class="waitlist-modal-content"><div class="loading-spinner"></div></div></div>');
                 const customers = await callCommerce7Api("/customer/", { q: email });
                 let customerId;
                 if (customers.total === 0) {
