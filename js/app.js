@@ -28,55 +28,63 @@ function initWaitlist() {
             waitlistNotification: ".waitlist-notification",
             waitlistForm: ".waitlist-form",
         };
+        var customer = {};
+        var lastClickedButton = null;
+        const triggerProducts = async () => {
+            try {
+                const token = getCookie('customerToken');
+                const response = await getCustomerData(token);
+                customer = response.data
+                const collections = document.querySelectorAll(selectors.collection);
+                if (collections) {
+                    collections.forEach((collection) => {
+                        new MutationObserver((_, observer) => {
+                            const products = collection.querySelectorAll(
+                                selectors.collectionProduct
+                            );
+                            if (products) {
+                                products.forEach((product) => {
+                                    const waitlist = product.querySelector(selectors.waitlist);
+                                    // Check Sold Out & Render Join Waitlist
 
-        const triggerProducts = () => {
-            const collections = document.querySelectorAll(selectors.collection);
-            if (collections) {
-                collections.forEach((collection) => {
+                                    const atcForm = product.querySelector(selectors.form);
+                                    const messError = product.querySelector(".c7-message");
+                                    const loginMess = product.querySelector(".c7-product__login-message");
+                                    if (!atcForm) {
+                                        const productAnchor = product.querySelector("a");
+                                        const productLink = productAnchor.getAttribute("href");
+                                        renderWaitlistContent(productLink, messError, loginMess, function (content) {
+                                            waitlist.innerHTML = content;
+                                        });
+
+                                    }
+                                });
+                                observer.disconnect();
+                            }
+                        }).observe(collection, { childList: true, subtree: true });
+                    });
+                }
+
+                const c7Wrapper = document.getElementById(selectors.c7Wrapper);
+
+                if (c7Wrapper && window.location.href.includes("/product/")) {
                     new MutationObserver((_, observer) => {
-                        const products = collection.querySelectorAll(
-                            selectors.collectionProduct
-                        );
-                        if (products) {
-                            products.forEach((product) => {
-                                const waitlist = product.querySelector(selectors.waitlist);
-                                // Check Sold Out & Render Join Waitlist
-
-                                const atcForm = product.querySelector(selectors.form);
-                                const messError = product.querySelector(".c7-message");
-                                const loginMess = product.querySelector(".c7-product__login-message");
-                                if (!atcForm) {
-                                    const productAnchor = product.querySelector("a");
-                                    const productLink = productAnchor.getAttribute("href");
-                                    renderWaitlistContent(productLink, messError, loginMess, function (content) {
-                                        waitlist.innerHTML = content;
-                                    });
-
-                                }
-                            });
+                        const waitlist = document.querySelector(selectors.waitlist);
+                        if (waitlist) {
+                            const atcForm = c7Wrapper.querySelector(selectors.form);
+                            const messError = c7Wrapper.querySelector(".c7-message");
+                            const loginMess = c7Wrapper.querySelector(".c7-product__login-message");
+                            if (!atcForm) {
+                                renderWaitlistContent(window.location.href, messError, loginMess, function (content) {
+                                    waitlist.innerHTML = content;
+                                });
+                            }
                             observer.disconnect();
                         }
-                    }).observe(collection, { childList: true, subtree: true });
-                });
-            }
-
-            const c7Wrapper = document.getElementById(selectors.c7Wrapper);
-
-            if (c7Wrapper && window.location.href.includes("/product/")) {
-                new MutationObserver((_, observer) => {
-                    const waitlist = document.querySelector(selectors.waitlist);
-                    if (waitlist) {
-                        const atcForm = c7Wrapper.querySelector(selectors.form);
-                        const messError = c7Wrapper.querySelector(".c7-message");
-                        const loginMess = c7Wrapper.querySelector(".c7-product__login-message");
-                        if (!atcForm) {
-                            renderWaitlistContent(window.location.href, messError, loginMess, function (content) {
-                                waitlist.innerHTML = content;
-                            });
-                        }
-                        observer.disconnect();
-                    }
-                }).observe(c7Wrapper, { childList: true, subtree: true });
+                    }).observe(c7Wrapper, { childList: true, subtree: true });
+                }
+            } catch (e) {
+                console.log(e)
             }
         };
         const tenantId = $("#waitlist-javascript").data("tenant")
@@ -98,7 +106,6 @@ function initWaitlist() {
                     success: false,
                     data: null
                 };
-                // throw new Error('Empty tenant id or empty token');
             }
 
             try {
@@ -154,32 +161,27 @@ function initWaitlist() {
         }
 
         // Hàm render waitlist content đã được cập nhật
-        async function renderWaitlistContent(productLink, messError, loginMess, callback) {
+        function renderWaitlistContent(productLink, messError, loginMess, callback) {
             const parts = productLink.split("/");
             const title = parts.pop() || parts.pop();
-            const token = getCookie('customerToken');
-            try {
-                const response = await getCustomerData(token);
-                let html = '';
-                if (!response.success) {
-                    if (!messError && !loginMess) {
-                        html += '<h5 class="product-soldout">Sold Out</h5>';
-                        html += `<button class="button primary show-waitlist-modal" data-title="${title}">join waitlist</button>`;
-                    }
-                    callback(html);
-                    return;
-                }
-
+            let isSoldOut = false;
+            let html = '';
+            if (!customer) {
                 if (!messError && !loginMess) {
                     html += '<h5 class="product-soldout">Sold Out</h5>';
+                    html += `<button class="button primary show-waitlist-modal" data-title="${title}">Join Waitlist</button>`;
                 }
-
-                html += `<button class="button primary show-waitlist-modal" data-title="${title}">join waitlist</button>`;
                 callback(html);
-            } catch (error) {
-                console.error('Error rendering waitlist content:', error);
-                callback('');
+                return;
             }
+
+            if (!messError && !loginMess) {
+                isSoldOut = true
+                html += '<h5 class="product-soldout">Sold Out</h5>';
+            }
+
+            html += `<button class="button primary show-waitlist-modal ${isSoldOut ? '' : 'for-club'}" data-title="${title}">Join Waitlist</button>`;
+            callback(html);
         }
 
         const getCookie = (cookieName) => {
@@ -201,17 +203,37 @@ function initWaitlist() {
         jQuery(document).on("click", selectors.showModal, function (e) {
             jQuery('.c7-product-popup-close').click();
             const title = jQuery(this).data("title");
-            const modalContent =
-                '<div class="waitlist-modal-wrapper" id="waitlist-modal"><div class="waitlist-modal-content"><span class="close-wailtlist-modal">+</span><h2>Waitlist Signup</h2><p>Please add your email address below and we will notify you when this is available for purchase.</p><div class="waitlist-form"><label>Email Address *</label><input type="email" class="waitlist-email"><p class="waitlist-notification"></p><div class="button primary waitlist-submit" data-title="' +
-                title +
-                '">Submit</div></div></div></div>';
-            jQuery("body").append(modalContent);
+            let modalContent = ''
+            if ($(this).hasClass('for-club')) {
+                renderModalForClub($(this))
+                return;
+            }
+            jQuery("body").append(renderModalForSoldout(modalContent, title, $(this)));
         });
-
-        jQuery(document).on("click", selectors.joinWaitlist, async function () {
+        const renderModalForClub = (element) => {
+            if (!customer) {
+                return
+            }
+            handleAssignTag(element)
+            return;
+        }
+        const renderModalForSoldout = (modalContent, titleProduct, element) => {
+            if (customer) {
+                handleAssignTag(element)
+                return
+            }
+            modalContent =
+                '<div class="waitlist-modal-wrapper" id="waitlist-modal"><div class="waitlist-modal-content"><span class="close-wailtlist-modal">+</span><h2>Waitlist Signup</h2><p>Please add your email address below and we will notify you when this is available for purchase.</p><div class="waitlist-form"><label>Email Address *</label><input type="email" class="waitlist-email"><p class="waitlist-notification"></p><div class="button primary waitlist-submit" data-title="' +
+                titleProduct +
+                '">Submit</div></div></div></div>';
+            lastClickedButton = element
+            return modalContent;
+        }
+        const handleAssignTag = async (element) => {
             try {
-                const email = jQuery(selectors.waitlistEmail).val();
-                const title = jQuery(this).data("title");
+                jQuery("body").append('<div class="waitlist-modal-wrapper loading-modal" id="loading-modal"><div class="waitlist-modal-content"><div class="loading-spinner"></div></div></div>');
+                const email = customer && customer.emails && customer.emails[0] && customer.emails[0].email ? customer.emails[0].email : jQuery(selectors.waitlistEmail).val();
+                const title = element.data("title");
 
                 jQuery(selectors.waitlistNotification).html("");
                 if (!validateEmail(email)) {
@@ -244,18 +266,33 @@ function initWaitlist() {
                     tagId = tags.tags[0].id;
                 }
 
-                // Gán tag cho customer
-                await callCommerce7Api("/tag-x-object/customer/", {
+                const res = await callCommerce7Api("/tag-x-object/customer/", {
                     objectId: customerId,
                     tagId: tagId
                 }, "POST");
-
-                // Hiển thị thông báo thành công
-                jQuery(selectors.waitlistForm).html('Received! You\'re on the list!');
-
+                jQuery("#loading-modal").remove();
+                renderModalSuccess();
+                $(element).closest(selectors.waitlist).find('button').text('Waitlisted')
             } catch (e) {
-                jQuery(selectors.waitlistNotification).html('System is busy at this moment. Please try again later.');
+                jQuery("#loading-modal").remove();
+                alert("System is busy at this moment. Please try again later.")
             }
+        }
+        const renderModalSuccess = () => {
+            if (jQuery(selectors.waitlistForm).length > 0) {
+                jQuery(selectors.waitlistForm).html('Received! You\'re on the list!');
+                $(lastClickedButton).text('Waitlisted')
+                $(lastClickedButton).removeClass("show-waitlist-modal")
+                return
+            }
+            const modalContent =
+                '<div class="waitlist-modal-wrapper" id="waitlist-modal"><div class="waitlist-modal-content"><span class="close-wailtlist-modal">+</span><h2>Waitlist Signup</h2><div class="waitlist-form"><p class="waitlist-notification">Received! You\'re on the list!</p></div></div></div>';
+            jQuery("body").append(modalContent);
+        }
+        // action for sold out
+        jQuery(document).on("click", selectors.joinWaitlist, function () {
+            handleAssignTag($(this))
+
         });
         function validateEmail(email) {
             const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
