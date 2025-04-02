@@ -100,10 +100,61 @@ async function initWaitlist() {
                     throw error;
                 }
             }
+            var configSetting = {
+                baseUrl: 'https://doant72.sg-host.com/',
+                tenantId: tenantId,
+            };
+            async function getSetting(endpoint, options = null, method = 'GET') {
+                try {
+                    const queryString = method === 'GET' && options ? '?' + new URLSearchParams(options).toString() : '';
+
+                    const response = await fetch(`${configSetting.baseUrl}${endpoint}${queryString}`, {
+                        method: method,
+                        headers: {
+                            'Content-Type': 'application/json'
+
+                        },
+                        body: method === 'POST' ? JSON.stringify(options) : null
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('App Waitlist Response Error');
+                    }
+
+                    return await response.json();
+                } catch (error) {
+                    console.error('API Error:', error);
+                    throw error;
+                }
+            }
             const res = await callCommerce7Api('/customer');
             if (!res) {
                 return;
             }
+            var setting = await getSetting('/api/waitlist-settings', { tenant_id: tenantId })
+            console.log(setting)
+            if (!setting.enabled) {
+                return
+            }
+            const buttonText = setting.button_text
+            var buttonTextWaitlist = JSON.parse(buttonText).btn_text
+            var buttonTextWaitlisted = JSON.parse(buttonText).btn_text_submitted
+            var buttonStyle = JSON.parse(setting.button_style)
+            const cssString = `
+    .btn-primary {
+        background-color: ${buttonStyle.backgroundColor};
+        color: ${buttonStyle.textColor};
+        outline: ${buttonStyle.outlineWidth} ${buttonStyle.outlineStyle} ${buttonStyle.outlineColor};
+    }
+    .btn-primary:hover {
+        background-color: ${buttonStyle.hoverBackgroundColor};
+        color: ${buttonStyle.hoverTextColor};
+    }
+`;
+
+            const styleTag = document.createElement("style");
+            styleTag.innerHTML = cssString;
+            document.head.appendChild(styleTag);
             var customer = {};
             var lastClickedButton = null;
             const triggerProducts = async () => {
@@ -174,7 +225,7 @@ async function initWaitlist() {
                 if (!customer) {
                     if (!messError && !loginMess) {
                         html += '<h5 class="product-soldout">Sold Out</h5>';
-                        html += `<button class="button primary show-waitlist-modal" data-title="${title}">Join Waitlist</button>`;
+                        html += `<button class="btn-primary show-waitlist-modal" data-title="${title}">${buttonTextWaitlist}</button>`;
                     }
                     callback(html);
                     return;
@@ -185,7 +236,7 @@ async function initWaitlist() {
                     html += '<h5 class="product-soldout">Sold Out</h5>';
                 }
 
-                html += `<button class="button primary show-waitlist-modal ${isSoldOut ? '' : 'for-club'}" data-title="${title}">Join Waitlist</button>`;
+                html += `<button class="btn-primary show-waitlist-modal ${isSoldOut ? '' : 'for-club'}" data-title="${title}">${buttonTextWaitlist}</button>`;
                 callback(html);
             }
 
@@ -228,9 +279,7 @@ async function initWaitlist() {
                     return
                 }
                 modalContent =
-                    '<div class="waitlist-modal-wrapper" id="waitlist-modal"><div class="waitlist-modal-content"><span class="close-wailtlist-modal">+</span><h2>Waitlist Signup</h2><p>Please add your email address below and we will notify you when this is available for purchase.</p><div class="waitlist-form"><label>Email Address *</label><input type="email" class="waitlist-email"><p class="waitlist-notification"></p><div class="button primary waitlist-submit" data-title="' +
-                    titleProduct +
-                    '">Submit</div></div></div></div>';
+                    `<div class="waitlist-modal-wrapper" id="waitlist-modal"><div class="waitlist-modal-content"><span class="close-wailtlist-modal">+</span><h2>${setting.popup_title}</h2><p>${setting.popup_body}</p><div class="waitlist-form"><label>Email Address *</label><input type="email" class="waitlist-email"><p class="waitlist-notification"></p><button class="btn-primary waitlist-submit" data-title="${titleProduct}">Submit</button></div></div></div>`;
                 lastClickedButton = element
                 return modalContent;
             }
@@ -277,7 +326,7 @@ async function initWaitlist() {
                     }, "POST");
                     jQuery("#loading-modal").remove();
                     renderModalSuccess();
-                    $(element).closest(selectors.waitlist).find('button').text('Waitlisted')
+                    $(element).closest(selectors.waitlist).find('button').text(buttonTextWaitlisted)
                 } catch (e) {
                     jQuery("#loading-modal").remove();
                     alert("System is busy at this moment. Please try again later.")
@@ -285,13 +334,13 @@ async function initWaitlist() {
             }
             const renderModalSuccess = () => {
                 if (jQuery(selectors.waitlistForm).length > 0) {
-                    jQuery(selectors.waitlistForm).html('Received! You\'re on the list!');
-                    $(lastClickedButton).text('Waitlisted')
+                    jQuery(selectors.waitlistForm).html(setting.success_message);
+                    $(lastClickedButton).text(buttonTextWaitlisted)
                     $(lastClickedButton).removeClass("show-waitlist-modal")
                     return
                 }
                 const modalContent =
-                    '<div class="waitlist-modal-wrapper" id="waitlist-modal"><div class="waitlist-modal-content"><span class="close-wailtlist-modal">+</span><h2>Waitlist Signup</h2><div class="waitlist-form"><p class="waitlist-notification">Received! You\'re on the list!</p></div></div></div>';
+                    `<div class="waitlist-modal-wrapper" id="waitlist-modal"><div class="waitlist-modal-content"><span class="close-wailtlist-modal">+</span><h2>${setting.popup_title}</h2><div class="waitlist-form"><p class="waitlist-notification">${setting.success_message}</p></div></div></div>`;
                 jQuery("body").append(modalContent);
             }
             // action for sold out
