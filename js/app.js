@@ -101,7 +101,7 @@ async function initWaitlist() {
                 }
             }
             var configSetting = {
-                baseUrl: 'https://doant72.sg-host.com/',
+                baseUrl: 'https://doant72.sg-host.com',
                 tenantId: tenantId,
             };
             async function getSetting(endpoint, options = null, method = 'GET') {
