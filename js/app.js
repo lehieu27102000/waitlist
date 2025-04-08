@@ -127,12 +127,35 @@ async function initWaitlist() {
                     throw error;
                 }
             }
+            async function apiApp(endpoint, options = null, method = 'GET') {
+                try {
+                    const queryString = method === 'GET' && options ? '?' + new URLSearchParams(options).toString() : '';
+
+                    const response = await fetch(`${configSetting.baseUrl}${endpoint}${queryString}`, {
+                        method: method,
+                        headers: {
+                            'Authorization': `Basic ${config.credentials}`,
+                            'tenant': config.tenantId,
+                            'Content-Type': 'application/json'
+                        },
+                        body: method === 'POST' ? JSON.stringify(options) : null
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('API Error');
+                    }
+
+                    return await response.json();
+                } catch (error) {
+                    console.error('API Error:', error);
+                    throw error;
+                }
+            }
             const res = await callCommerce7Api('/customer');
             if (!res) {
                 return;
             }
             var setting = await getSetting('/api/waitlist-settings', { tenant_id: tenantId })
-            console.log(setting)
             if (!setting.enabled) {
                 return
             }
@@ -325,6 +348,13 @@ async function initWaitlist() {
                         tagId: tagId
                     }, "POST");
                     jQuery("#loading-modal").remove();
+                    const product = await callCommerce7Api('/product?slug=' + title)
+                    const submission = await apiApp('/api/submission', {
+                        product_id: product.products[0].id,
+                        product_name: product.products[0].title,
+                        customer_id: customerId,
+                        tenant: config.tenantId
+                    }, 'POST')
                     renderModalSuccess();
                     $(element).closest(selectors.waitlist).find('button').text(buttonTextWaitlisted)
                 } catch (e) {
